@@ -17,6 +17,8 @@ RKI_DATA_PATH = f'{DATA_BASE_PATH}/RKI-Data'
 WHO_DATA_PATH = f'{DATA_BASE_PATH}/WHO-Data'
 RAW_DATA_PATH = f'{DATA_BASE_PATH}/rawData'
 
+getNewData = False
+
 if not os.path.isdir(DATA_BASE_PATH):
     os.mkdir(DATA_BASE_PATH)
 if not os.path.isdir(RKI_DATA_PATH):
@@ -162,7 +164,7 @@ def raw_data_to_daily_data(raw_df, accumulated=False, death=False, state_id=99):
         _sorted_df = raw_df.sort_values(by='Refdatum', ignore_index=True, kind='stable')
 
     _combined_data = []
-    _current_date = _sorted_df.head(1)['Refdatum'][0]
+    _current_datetime = datetime.strptime('2020-01-01', '%Y-%m-%d')
     _current_cases = 0
     _day_counter = 0
 
@@ -174,7 +176,7 @@ def raw_data_to_daily_data(raw_df, accumulated=False, death=False, state_id=99):
                 _caseCount = _row.AnzahlFall
             _refDate = _row.Refdatum
 
-            _current_datetime = datetime.utcfromtimestamp(_current_date / 1000)
+            # _current_datetime = datetime.utcfromtimestamp(_current_date / 1000)
             _ref_datetime = datetime.utcfromtimestamp(_refDate / 1000)
 
             while True:
@@ -188,13 +190,13 @@ def raw_data_to_daily_data(raw_df, accumulated=False, death=False, state_id=99):
 
                     _current_datetime = _current_datetime + timedelta(days=1)
                 else:
-                    _current_date = _refDate
+                    _current_datetime = datetime.utcfromtimestamp(_refDate / 1000)
                     break
 
             _current_cases += _caseCount
 
     _day_counter += 1
-    _current_datetime = datetime.utcfromtimestamp(_current_date / 1000)
+    # _current_datetime = datetime.utcfromtimestamp(_current_date / 1000)
     _combined_data.append([_day_counter, _current_datetime.day, _current_datetime.month, _current_datetime.year,
                            _current_datetime.strftime('%u'), _current_cases])
     _combinedDf = pd.DataFrame(_combined_data, columns=['#DayCounter', 'Day', 'Month', 'Year', 'Weekday', 'AnzahlFall'])
@@ -227,7 +229,6 @@ def raw_data_to_daily_data(raw_df, accumulated=False, death=False, state_id=99):
 
 print('◄►◄►◄►◄►◄►◄►◄►◄ RKI Data ►◄►◄►◄►◄►◄►◄►◄►\n')
 
-getNewData = True
 rkiData = RKIData()
 
 if getNewData:
@@ -286,11 +287,9 @@ print('RKI-Data updated\n\n\n')
 
 print('◄►◄►◄►◄►◄►◄►◄►◄ WHO Data ►◄►◄►◄►◄►◄►◄►◄►\n')
 
-whoNewData = True
-
 whoData = WHOData()
 
-if whoNewData:
+if getNewData:
     print('Getting new raw data from WHO (can take some time) ...\n')
     whoRawDf = whoData.get_latest_data()
     print('Saving new data ...\n')
