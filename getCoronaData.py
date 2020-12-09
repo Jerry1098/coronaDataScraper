@@ -17,7 +17,7 @@ RKI_DATA_PATH = f'{DATA_BASE_PATH}/RKI-Data'
 WHO_DATA_PATH = f'{DATA_BASE_PATH}/WHO-Data'
 RAW_DATA_PATH = f'{DATA_BASE_PATH}/rawData'
 
-getNewData = False
+getNewData = True
 
 if not os.path.isdir(DATA_BASE_PATH):
     os.mkdir(DATA_BASE_PATH)
@@ -122,6 +122,7 @@ class WHOData:
             for _country in _countrys:
 
                 _country_path = f'{_region_path}/{_country}.csv'
+                _country_path = _country_path.replace(' ', '_')
 
                 _country_counter += 1
                 sys.stdout.write(f'\rConverting country: {_country_counter}/{_country_total}')
@@ -149,10 +150,6 @@ class WHOData:
                 _to_save_df.to_csv(_country_path, index=False)
         
         print('\n')
-            
-            
-
-            
 
 
 
