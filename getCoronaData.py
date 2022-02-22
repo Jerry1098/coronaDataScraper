@@ -1,10 +1,6 @@
-import itertools
-import json
 import locale
 import os
 import sys
-import threading
-import time
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -54,8 +50,11 @@ class RKIData:
             'resultOffset': 0
         }
 
+        print('Starting to download data')
         while True:
             # print(f'Request for offset={params["resultOffset"]}')
+            sys.stdout.write(f'\rGetting data with offset: {params["resultOffset"]}')
+            sys.stdout.flush()
             _response = requests.get(self._RKI_CORONA_URL, headers=self._HEADERS, params=params)
             if _response.status_code != 200:
                 raise Exception("Failed to receive new data -> no internet connection?")
@@ -69,6 +68,8 @@ class RKIData:
 
             params['resultOffset'] += 32000
             # time.sleep(1)
+
+        print('\rDone downloading data from RKI')
 
         data = []
         for big_result_list in cached_data:
@@ -225,62 +226,63 @@ def raw_data_to_daily_data(raw_df, accumulated=False, death=False, state_id=99):
 
 
 try:
-    print('◄►◄►◄►◄►◄►◄►◄►◄ RKI Data ►◄►◄►◄►◄►◄►◄►◄►\n')
+    if False:
+        print('◄►◄►◄►◄►◄►◄►◄►◄ RKI Data ►◄►◄►◄►◄►◄►◄►◄►\n')
 
-    rkiData = RKIData()
+        rkiData = RKIData()
 
-    if getNewData:
-        print('Getting new raw data from RKI (can take some time) ...\n')
-        rawDf = rkiData.get_latest_data()
-        print('Saving new data ...\n')
-        rawDf.to_csv(f'{RAW_DATA_PATH}/Covid-19-Raw-Data-RKI.csv')
-    else:
-        print('Loading old data from disk ...\n')
-        rawDf = pd.read_csv(f'{RAW_DATA_PATH}/Covid-19-Raw-Data-RKI.csv')
+        if getNewData:
+            print('Getting new raw data from RKI (can take some time) ...\n')
+            rawDf = rkiData.get_latest_data()
+            print('Saving new data ...\n')
+            rawDf.to_csv(f'{RAW_DATA_PATH}/Covid-19-Raw-Data-RKI.csv')
+        else:
+            print('Loading old data from disk ...\n')
+            rawDf = pd.read_csv(f'{RAW_DATA_PATH}/Covid-19-Raw-Data-RKI.csv')
 
 
 
-    if __name__ == '__main__':
-        print('Converting raw data ...\n')
-        _to_convert_total = 0
-        _converted_counter = 0
-        for i in range(1, 17):
-            for j in range(0, 2):
-                for k in range(0, 2):
-                    _to_convert_total += 1
+        if __name__ == '__main__':
+            print('Converting raw data ...\n')
+            _to_convert_total = 0
+            _converted_counter = 0
+            for i in range(1, 17):
+                for j in range(0, 2):
+                    for k in range(0, 2):
+                        _to_convert_total += 1
 
-        _to_convert_total += 4
+            _to_convert_total += 4
 
-        for state_id in range(1, 17):
-            for death in range(0, 2):
-                for accumulated in range(0, 2):
-                    raw_data_to_daily_data(rawDf, bool(accumulated), bool(death), state_id)
+            for state_id in range(1, 17):
+                for death in range(0, 2):
+                    for accumulated in range(0, 2):
+                        raw_data_to_daily_data(rawDf, bool(accumulated), bool(death), state_id)
+                        _converted_counter += 1
+                        sys.stdout.write(f'\rConverted dataset {_converted_counter} from {_to_convert_total}')
+                        sys.stdout.flush()
+
+            for i in range(0,2):
+                for j in range(0,2):
                     _converted_counter += 1
+                    raw_data_to_daily_data(rawDf, bool(i), bool(j))
                     sys.stdout.write(f'\rConverted dataset {_converted_counter} from {_to_convert_total}')
                     sys.stdout.flush()
 
-        for i in range(0,2):
-            for j in range(0,2):
-                _converted_counter += 1
-                raw_data_to_daily_data(rawDf, bool(i), bool(j))
-                sys.stdout.write(f'\rConverted dataset {_converted_counter} from {_to_convert_total}')
-                sys.stdout.flush()
-
-    print('\n')
+        print('\n')
 
 
-    print('Creating Id-to-State.csv file...\n')
+        print('Creating Id-to-State.csv file...\n')
 
-    id_to_state = []
+        id_to_state = []
 
-    for state_id in range(1, 17):
-        state_name = rawDf[rawDf.IdBundesland == state_id].head(1).reset_index()['Bundesland'][0]
-        id_to_state.append({'IdBundesland': state_id, 'Bundesland': state_name})
+        for state_id in range(1, 17):
+            state_name = rawDf[rawDf.IdBundesland == state_id].head(1).reset_index()['Bundesland'][0]
+            id_to_state.append({'IdBundesland': state_id, 'Bundesland': state_name})
 
-    pd.DataFrame(id_to_state).to_csv(f'{RKI_DATA_PATH}/Id-to-State.csv', index=False)
+        pd.DataFrame(id_to_state).to_csv(f'{RKI_DATA_PATH}/Id-to-State.csv', index=False)
 
-    del rawDf
-    print('RKI-Data updated\n\n\n')
+        del rawDf
+        print('RKI-Data updated\n\n\n')
 
 
     print('◄►◄►◄►◄►◄►◄►◄►◄ WHO Data ►◄►◄►◄►◄►◄►◄►◄►\n')
@@ -300,8 +302,10 @@ try:
     whoData.convert_data(whoRawDf)
 
     print('◄►◄►◄►◄►◄►◄►◄►◄ Done ►◄►◄►◄►◄►◄►◄►◄►')
+    print("Everything done. Press enter to close")
+    input()
 except Exception as e:
     print("Something went wrong with error:")
-    print(e + '\n')
+    print(e)
     print("Press enter to continue")
     input()
